@@ -1,5 +1,5 @@
-﻿using BlazorWASM;
-using BlazorWASM.Pages;
+﻿using BlazorWebAssembly;
+using BlazorWebAssembly.Pages;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 

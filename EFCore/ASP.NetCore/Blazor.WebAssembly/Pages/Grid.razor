@@ -2,9 +2,6 @@
 @inject HttpClient HttpClient;
 @inject IJSRuntime Js;
 @using Simple.OData.Client
-@using System.Collections
-@using DevExpress.Data.Filtering
-@using DevExpress.Data.Filtering.Helpers
 <DxButton SizeMode="SizeMode.Small" Text="Archive" RenderStyle="ButtonRenderStyle.Secondary" Enabled="Archive" Click="OnArchive" />
 <DxButton SizeMode="SizeMode.Small" Text="Shape" RenderStyle="ButtonRenderStyle.Secondary" Click="OnShape" />
 <DxGrid  Data="@Data" CssClass="mw-1100" KeyFieldName="PostId" ShowFilterRow="true" @bind-SelectedDataItems="SelectedDataItems" SelectionMode="GridSelectionMode.Single"
@@ -39,7 +36,7 @@
 
 @code {
     IReadOnlyList<object>? SelectedDataItems { get; set; }
-    CustomDataSource? Data { get; set; }
+    SimpleODataClientDataSource? Data { get; set; }
     ODataClient Client { get; set; } = null!;
     bool Archive => SelectedDataItems != null && SelectedDataItems.Any();
     bool Archived { get; set; }
@@ -47,10 +44,10 @@
     public bool AllowEdit { get; set; }
 
     protected override async Task OnInitializedAsync() {
-        var settings = new ODataClientSettings(new Uri($"{HttpClient.BaseAddress.AbsoluteUri}odata"));
+        var settings = new ODataClientSettings(new Uri($"{HttpClient.BaseAddress?.AbsoluteUri}odata"));
         settings.BeforeRequest += message => message.Headers.Authorization = HttpClient.DefaultRequestHeaders.Authorization;
         Client = new ODataClient(settings);
-        Data = new CustomDataSource(Client);
+        Data = new SimpleODataClientDataSource(Client);
         AllowEdit = await HttpClient.GetFromJsonAsync<bool>("CustomEndpoint/CanCreate?typename=Post");
         await base.OnInitializedAsync();
     }
@@ -83,31 +80,6 @@
         => await Js.InvokeAsync<object>("saveAsFile", "Report.pdf", Convert.ToBase64String(
             await HttpClient.GetByteArrayAsync("report/DownloadByName(Post Report)")));
 
-    public class CustomDataSource : GridCustomDataSource {
-        private readonly ODataClient _client;
-
-        public CustomDataSource(ODataClient client) 
-            => _client = client;
-
-        public override async Task<int> GetItemCountAsync(GridCustomDataSourceCountOptions options, CancellationToken cancellationToken) 
-            => await ApplyFiltering(options.FilterCriteria, _client.For<Post>()).Count().FindScalarAsync<int>(cancellationToken);
-
-        public override async Task<IList> GetItemsAsync(GridCustomDataSourceItemsOptions options, CancellationToken cancellationToken) {
-            var filteredClient = ApplyFiltering(options.FilterCriteria, _client.For<Post>().Top(options.Count).Skip(options.StartIndex));
-            var sortedClient = ApplySorting(options, filteredClient);
-            return (await sortedClient.FindEntriesAsync(cancellationToken)).ToList();
-        }
-
-        private static IBoundClient<Post> ApplyFiltering(CriteriaOperator criteria, IBoundClient<Post> boundClient) 
-            => !criteria.ReferenceEqualsNull() ?
-                boundClient.Filter($"{criteria}".Replace("[", "").Replace("]", "")) : boundClient;
-
-        private static IBoundClient<Post> ApplySorting(GridCustomDataSourceItemsOptions options, IBoundClient<Post> boundClient) 
-            => options.SortInfo.Any() ? boundClient.OrderBy(options.SortInfo
-                .Where(info => !info.DescendingSortOrder).Select(info => info.FieldName).ToArray())
-                .OrderByDescending(options.SortInfo
-                    .Where(info => info.DescendingSortOrder).Select(info => info.FieldName).ToArray()) : boundClient;
-    }
 
     
 
