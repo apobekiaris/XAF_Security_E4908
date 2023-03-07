@@ -1,0 +1,23 @@
+﻿@using BlazorWASM.Pages
+@inject Login.AuthenticationState AuthenticationState;
+@inject HttpClient HttpClient;
+<div class="sidebar @StateCssClass">
+<DxTreeView AllowSelectNodes="true" CssClass="app-sidebar">
+    <Nodes>
+        <DxTreeViewNode NavigateUrl="grid" Text="Grid" Visible="IsAuthenticated"></DxTreeViewNode>
+        <DxTreeViewNode NavigateUrl="Login" Text="Login" Visible="!IsAuthenticated"></DxTreeViewNode>
+        <DxTreeViewNode NavigateUrl="Login" Text="Logout" Visible="IsAuthenticated"></DxTreeViewNode>
+    </Nodes>
+</DxTreeView>
+</div>
+
+@code {
+    protected override void OnInitialized() {
+        base.OnInitialized();
+        AuthenticationState.AuthenticationStateChanged+=StateHasChanged;
+    }
+
+    public void Dispose() => AuthenticationState.AuthenticationStateChanged -= StateHasChanged;
+    [Parameter] public string? StateCssClass { get; set; }
+    private bool IsAuthenticated => HttpClient.DefaultRequestHeaders.Authorization != null;
+}

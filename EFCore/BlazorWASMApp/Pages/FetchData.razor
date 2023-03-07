@@ -1,0 +1,41 @@
+﻿@page "/fetchdata"
+@using DevExpress.Blazor
+@using DevExpress.Data.ODataLinq
+@inject HttpClient Http
+
+<PageTitle>Posts</PageTitle>
+
+<h1>Posts</h1>
+
+<p>This component demonstrates fetching data from the server.</p>
+
+<DxGrid Data="InstantFeedbackSource"> 
+    <Columns>
+        <DxGridDataColumn FieldName="Title" />
+        
+    </Columns>
+</DxGrid>
+
+@code {
+    ODataInstantFeedbackSource? InstantFeedbackSource { get; set; }
+
+    protected override void OnInitialized() {
+        var container = new Default.Container(new Uri("https://localhost:5001/api/odata"));
+        InstantFeedbackSource = new ODataInstantFeedbackSource(e => {   
+            e.Query=container.Post;
+            e.KeyExpressions = new[] { nameof(Post) };
+        });
+        
+    }
+
+    public void Dispose() => InstantFeedbackSource?.Dispose();
+}
+
+@code {
+    // private WeatherForecast[]? forecasts;
+    //
+    // protected override async Task OnInitializedAsync()
+    // {
+    //     forecasts = await Http.GetFromJsonAsync<WeatherForecast[]>("WeatherForecast");
+    // }
+}
