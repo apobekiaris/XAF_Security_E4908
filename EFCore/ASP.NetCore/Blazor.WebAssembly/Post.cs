@@ -1,4 +1,4 @@
-﻿namespace BlazorWASM;
+﻿namespace BlazorWebAssembly;
 
 public class Post {
     public int PostId { get; set; }
