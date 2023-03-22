@@ -1,0 +1,7 @@
+﻿@page "/authentication/{action}"
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+<ErrorBoundary><RemoteAuthenticatorView Action="@Action" /></ErrorBoundary>
+
+@code{
+    [Parameter] public string? Action { get; set; }
+}

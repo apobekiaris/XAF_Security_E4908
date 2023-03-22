@@ -1,0 +1,77 @@
+﻿@page "/authentication/WebAPILogin"
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using System.ComponentModel.DataAnnotations
+@using System.Web
+@inject HttpClient HttpClient;
+@inject NavigationManager NavigationManager;
+
+@inject WebAPIAuthenticationStateService WebAPIAuthenticationStateService;
+
+<div class="d-flex align-items-center justify-content-center" style="height:100vh;">
+    <div class="form-control" style="width: 25%; margin-top: -60vh;">
+        <ErrorBoundary @ref="_errorBoundary">
+            <ChildContent>
+                <EditForm Model="@this" OnSubmit="Login" Context="EditFormContext">
+                    <DataAnnotationsValidator />
+                    <div class="card-body  align-content-around">
+                        <DxFormLayout>
+                            <DxFormLayoutItem ColSpanMd="12">
+                                <DxTextBox @bind-Text="@Username" NullText="Username" ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto" />
+                                <div class="text-danger"><ValidationMessage For="@(() => Username)" /></div>
+                            </DxFormLayoutItem>
+                            <DxFormLayoutItem ColSpanMd="12">
+                                <DxTextBox @bind-Text="@Password" NullText="Password" Password="true" ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto" />
+                                <div class="text-danger"><ValidationMessage For="@(() => Password)" /></div>
+                            </DxFormLayoutItem>
+                            <DxFormLayoutItem ColSpanMd="12">
+                                <div class="text-danger"><ValidationMessage For="@(() => AuthenticationResult)" /></div>
+                            </DxFormLayoutItem>
+                            <DxFormLayoutItem ColSpanMd="12">
+                                <DxButton Text="Login" RenderStyle="ButtonRenderStyle.Primary" SubmitFormOnClick="true" />
+                            </DxFormLayoutItem>
+                        </DxFormLayout>
+                    </div>
+                </EditForm>
+            </ChildContent>
+            <ErrorContent Context="e">
+                <DxPopup HeaderText="@e.GetType().ToString()" Visible="true" Closed="() => _errorBoundary.Recover()">
+                    @e.Message
+                </DxPopup>
+            </ErrorContent>
+        </ErrorBoundary>
+    </div>
+</div>
+
+@code {
+    private ErrorBoundary _errorBoundary = new();
+    [Required(ErrorMessage = "The Username value should be specified.")]
+    public string? Username { get; set; }
+    public string? Password { get; set; }
+    [DisplayStringPropertyValue()]
+    public string? AuthenticationResult { get; set; }
+
+    protected override async Task OnInitializedAsync(){
+        var state = await WebAPIAuthenticationStateService.GetAuthenticationStateAsync();
+        if (state.User.Identity?.IsAuthenticated??false){
+            NavigationManager.NavigateTo("/");    
+        }
+    }
+    
+    private async Task Login(EditContext editContext) {
+        if (editContext.Validate()) {
+            var responseMessage = await HttpClient.PostAsJsonAsync("Authentication/Authenticate", new { Username,Password});
+            var response = await responseMessage.Content.ReadAsStringAsync();
+            if (!responseMessage.IsSuccessStatusCode) {
+                AuthenticationResult = $"Authentication error ({responseMessage.StatusCode}): {response}";
+                editContext.Validate();
+                return;
+            }
+            await WebAPIAuthenticationStateService.SignInAsync(new RemoteAuthenticationContext<WebAPIAuthenticationState> {
+                State = new WebAPIAuthenticationState(Username!, response)
+            });
+            NavigationManager.NavigateTo(HttpUtility.ParseQueryString(new Uri(NavigationManager.Uri).Query).Get("returnUrl") ?? "/");
+        }
+    }
+
+    
+}      

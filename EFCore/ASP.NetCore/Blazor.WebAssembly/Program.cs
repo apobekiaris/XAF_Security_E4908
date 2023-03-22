@@ -1,5 +1,6 @@
 ﻿using BlazorWebAssembly;
 using BlazorWebAssembly.Pages;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
@@ -13,5 +14,11 @@ builder.Services.AddDevExpressBlazor(options => {
     options.BootstrapVersion = DevExpress.Blazor.BootstrapVersion.v5;
     options.SizeMode = DevExpress.Blazor.SizeMode.Medium;
 });
-
+builder.Services.AddScoped<AuthenticationStateProvider,MyAuthenticationStateProvider>();
 await builder.Build().RunAsync();
+
+public class MyAuthenticationStateProvider:AuthenticationStateProvider {
+    public override Task<AuthenticationState> GetAuthenticationStateAsync() {
+        throw new NotImplementedException();
+    }
+}

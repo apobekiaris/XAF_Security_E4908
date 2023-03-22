@@ -1,0 +1,75 @@
+﻿@page "/authentication/WebAPILogin"
+@using System.ComponentModel.DataAnnotations
+@using System.Net.Http.Headers
+@inject HttpClient HttpClient;
+@inject NavigationManager NavigationManager;
+
+
+<div class="card">
+    <EditForm Model="@UserData" OnValidSubmit="@Authenticate" OnInvalidSubmit="@HandleInvalidSubmit" Context="EditFormContext">
+        <DataAnnotationsValidator />
+        <div class="card-body w-50 align-content-around">
+            <DxFormLayout>
+                <DxFormLayoutItem ColSpanMd="12">
+                    <DxTextBox @bind-Text="@UserData.Username" NullText="Username"ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"/>
+                    <div class="text-danger">
+                        <ValidationMessage For="@(() => UserData.Username)" />
+                    </div>
+                </DxFormLayoutItem>
+                <DxFormLayoutItem ColSpanMd="12">
+                    <DxTextBox @bind-Text="@UserData.Password" NullText="Password" Password="true" ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"/>
+                    <div class="text-danger">
+                        <ValidationMessage For="@(() => UserData.Password)" />
+                    </div>
+                </DxFormLayoutItem>
+                <DxFormLayoutItem ColSpanMd="12">
+                    <DxButton Text="Login" RenderStyle="ButtonRenderStyle.Primary" SubmitFormOnClick="true"/>
+                </DxFormLayoutItem>
+            </DxFormLayout>
+        </div>
+    </EditForm>
+</div>
+<p class="tm-8 cw-480 mt-2 alert">
+    @_formSubmitResult
+</p>
+
+@code {
+
+    string _formSubmitResult = "";
+    User UserData { get; } = new();
+    
+    private async Task<HttpResponseMessage> RequestTokenAsync(User user) {
+        try {
+            return await HttpClient.PostAsJsonAsync("Authentication/Authenticate",user);
+        }
+        catch (Exception) {
+            return new HttpResponseMessage(System.Net.HttpStatusCode.BadGateway) { Content = new StringContent("An error occurred during the processing of the request. Please consult the demo's ReadMe file (Step 1,10) to discover potential causes and find solutions.") };
+        }
+    }
+    async Task<string> Authenticate(User user) {
+        var tokenResponse = await RequestTokenAsync(user);
+        var reposeContent = await tokenResponse.Content.ReadAsStringAsync();
+        if (tokenResponse.IsSuccessStatusCode) {
+            HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", reposeContent);
+            
+            return string.Empty;
+        }
+        return reposeContent;
+    }
+    async Task Authenticate() {
+        NavigationManager.NavigateTo("authentication/login");
+        // _formSubmitResult = await Authenticate(UserData);
+        // if (_formSubmitResult == String.Empty) {
+        //     NavigationManager.NavigateTo("/grid");
+        // }
+    }
+
+    void HandleInvalidSubmit() => _formSubmitResult = "";
+
+    public class User{
+        [Required(ErrorMessage = "The Username value should be specified.")]
+        public string? Username { get; set; } 
+        public string? Password { get; set; }
+    }
+
+}      

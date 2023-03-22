@@ -13,7 +13,6 @@ using Microsoft.AspNetCore.OData;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi.Models;
 using WebAPI.API.Security;
 using WebAPI.BusinessObjects;
@@ -113,16 +112,11 @@ public class Startup {
 	        });
         services
             .AddControllers()
-            .AddOData((options, serviceProvider) => {
-                options
-                    .AddRouteComponents("api/odata", new EdmModelBuilder(serviceProvider).GetEdmModel())
-                    .EnableQueryFeatures(100);
-            });
-        services.AddCors(options => {
-            options.AddPolicy(
-                "Open",
-                builder => builder.SetIsOriginAllowed(s => true).AllowAnyHeader().AllowAnyMethod());
-        });
+            .AddOData((options, serviceProvider) => options
+                .AddRouteComponents("api/odata", new EdmModelBuilder(serviceProvider).GetEdmModel())
+                .EnableQueryFeatures(100));
+        services.AddCors(options => options.AddPolicy(
+            "Open", builder => builder.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod()));
 
         services.AddSwaggerGen(c => {
             c.EnableAnnotations();
@@ -183,14 +177,6 @@ public class Startup {
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env) {
-        // app.UseCors(x => x
-        //     .AllowAnyOrigin()
-        //     .AllowAnyMethod()
-        //     .AllowAnyHeader());
-        // app.UseCors(policy => 
-        //     policy.AllowAnyOrigin()
-        //         .AllowAnyMethod()
-                // .WithHeaders(HeaderNames.ContentType));
         if(env.IsDevelopment()) {
             app.UseDeveloperExceptionPage();
             app.UseSwagger();

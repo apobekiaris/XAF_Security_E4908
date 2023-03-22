@@ -6,3 +6,4 @@ public class Post {
     public string? Content { get; set; }
 		
 }
+
