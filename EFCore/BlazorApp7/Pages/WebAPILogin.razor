@@ -59,7 +59,7 @@
     
     private async Task Login(EditContext editContext) {
         if (editContext.Validate()) {
-            var responseMessage = await HttpClient.PostAsJsonAsync("Authentication/Authenticate", new { Username,Password});
+            var responseMessage = await HttpClient.PostAsJsonAsync("Authentication/LoginAsync", new { Username, Password });
             var response = await responseMessage.Content.ReadAsStringAsync();
             if (!responseMessage.IsSuccessStatusCode) {
                 AuthenticationResult = $"Authentication error ({responseMessage.StatusCode}): {response}";
@@ -67,7 +67,7 @@
                 return;
             }
             await WebAPIAuthenticationStateService.SignInAsync(new RemoteAuthenticationContext<WebAPIAuthenticationState> {
-                State = new WebAPIAuthenticationState(Username!, response)
+                State = new WebAPIAuthenticationState(Username!)
             });
             NavigationManager.NavigateTo(HttpUtility.ParseQueryString(new Uri(NavigationManager.Uri).Query).Get("returnUrl") ?? "/");
         }

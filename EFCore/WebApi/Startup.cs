@@ -7,6 +7,7 @@ using DevExpress.ExpressApp.WebApi.Services;
 using DevExpress.Persistent.BaseImpl.EF;
 using DevExpress.Persistent.BaseImpl.EF.PermissionPolicy;
 using DevExpress.Persistent.BaseImpl.EFCore.AuditTrail;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.OData;
@@ -32,7 +33,6 @@ public class Startup {
     public void ConfigureServices(IServiceCollection services) {
         
         services
-            .AddScoped<IAuthenticationTokenProvider, JwtTokenProviderService>()
             .AddScoped<IObjectSpaceProviderFactory, ObjectSpaceProviderFactory>()
             .AddSingleton<IWebApiApplicationSetup, WebApiApplicationSetup>();
 
@@ -51,29 +51,20 @@ public class Startup {
 		        options.IsSupportChangePassword = true;
 	        });
         const string customBearerSchemeName = "CustomBearer";
-        var authentication = services.AddAuthentication(customBearerSchemeName);
-        authentication
-            .AddJwtBearer(customBearerSchemeName, options => {
-                options.TokenValidationParameters = new TokenValidationParameters() {
-                    ValidateIssuerSigningKey = true,
-                    //ValidIssuer = Configuration["Authentication:Jwt:Issuer"],
-                    //ValidAudience = Configuration["Authentication:Jwt:Audience"],
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["Authentication:Jwt:IssuerSigningKey"]))
-                };
-            });
+        services
+            .AddAuthentication(customBearerSchemeName)
+            .AddCookie()
         //Configure OAuth2 Identity Providers based on your requirements. For more information, see
         //https://docs.devexpress.com/eXpressAppFramework/402197/task-based-help/security/how-to-use-active-directory-and-oauth2-authentication-providers-in-blazor-applications
         //https://developers.google.com/identity/protocols/oauth2
         //https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-oauth2-auth-code-flow
         //https://developers.facebook.com/docs/facebook-login/manually-build-a-login-flow
-        authentication.AddMicrosoftIdentityWebApi(Configuration, configSectionName: "Authentication:AzureAd");
+            .AddMicrosoftIdentityWebApi(Configuration, configSectionName: "Authentication:AzureAd", jwtBearerScheme: "AzureAd");
 
         services.AddAuthorization(options => {
             options.DefaultPolicy = new AuthorizationPolicyBuilder(
-                JwtBearerDefaults.AuthenticationScheme,
-                customBearerSchemeName)
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                "AzureAd")
                     .RequireAuthenticatedUser()
                     .RequireXafAuthentication()
                     .Build();
@@ -115,8 +106,9 @@ public class Startup {
             .AddOData((options, serviceProvider) => options
                 .AddRouteComponents("api/odata", new EdmModelBuilder(serviceProvider).GetEdmModel())
                 .EnableQueryFeatures(100));
+
         services.AddCors(options => options.AddPolicy(
-            "Open", builder => builder.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod()));
+            "Open", builder => builder.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
 
         services.AddSwaggerGen(c => {
             c.EnableAnnotations();
@@ -125,27 +117,8 @@ public class Startup {
                 Version = "v1",
                 Description = @"Use AddXafWebApi(options) in the WebAPI.WebApi\Startup.cs file to make Business Objects available in the Web API."
             });
-            c.AddSecurityDefinition("JWT", new OpenApiSecurityScheme() {
-                Type = SecuritySchemeType.Http,
-                Name = "Bearer",
-                Scheme = "bearer",
-                BearerFormat = "JWT",
-                In = ParameterLocation.Header
-            });
-            c.AddSecurityRequirement(new OpenApiSecurityRequirement()
-                {
-                    {
-                        new OpenApiSecurityScheme() {
-                            Reference = new OpenApiReference() {
-                                Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-                                Id = "JWT"
-                            }
-                        },
-                        Array.Empty<string>()
-                    },
-            });
             var azureAdAuthorityUrl = $"{Configuration["Authentication:AzureAd:Instance"]}{Configuration["Authentication:AzureAd:TenantId"]}";
-            c.AddSecurityDefinition("OAuth2", new OpenApiSecurityScheme {
+            c.AddSecurityDefinition("AzureAd", new OpenApiSecurityScheme {
                 Type = SecuritySchemeType.OAuth2,
                 Flows = new OpenApiOAuthFlows() {
                     AuthorizationCode = new OpenApiOAuthFlow() {
@@ -161,11 +134,9 @@ public class Startup {
             c.AddSecurityRequirement(new OpenApiSecurityRequirement() {
                 {
                     new OpenApiSecurityScheme {
-                        Name = "OAuth2",
-                        Scheme = "OAuth2",
                         Reference = new OpenApiReference {
                             Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-                            Id = "OAuth2"
+                            Id = "AzureAd"
                         },
                         In = ParameterLocation.Header
                     },

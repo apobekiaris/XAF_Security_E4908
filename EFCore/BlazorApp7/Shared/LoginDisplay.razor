@@ -3,6 +3,8 @@
 
 @inject NavigationManager Navigation
 @inject SignOutSessionStateManager SignOutManager
+@inject HttpClient HttpClient;
+@inject WebAPIAuthenticationStateService WebAPIAuthenticationStateService;
 
 <AuthorizeView>
     <Authorized>
@@ -21,6 +23,10 @@
 
     private async Task BeginSignOut(MouseEventArgs args) {
         await SignOutManager.SetSignOutState();
-        Navigation.NavigateTo("authentication/logout");
+        await HttpClient.PostAsync("Authentication/LogoutAsync", null);
+        await WebAPIAuthenticationStateService.SignOutAsync(new RemoteAuthenticationContext<WebAPIAuthenticationState> {
+                State = new WebAPIAuthenticationState()
+            });
+        //Navigation.NavigateTo("authentication/logout");
     }
 }

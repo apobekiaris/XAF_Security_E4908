@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 namespace BlazorApp7.Services;
 
 public class WebAPIAuthenticationState:RemoteAuthenticationState {
-    public WebAPIAuthenticationState(string userName, string token) {
+    public WebAPIAuthenticationState(string userName) { //}, string token) {
         UserName = userName;
-        Token = token;
+        //Token = token;
     }
 
     public WebAPIAuthenticationState() {
@@ -13,5 +13,5 @@ public class WebAPIAuthenticationState:RemoteAuthenticationState {
     }
 
     public string? UserName { get; set; }
-    public string? Token { get; }
+    //public string? Token { get; }
 }

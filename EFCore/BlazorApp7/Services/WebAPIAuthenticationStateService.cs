@@ -31,7 +31,7 @@ namespace BlazorApp7.Services{
                     { Value = (await GetAuthenticatedUser()).FindFirst(claim => claim.Type == "access_token")?.Value }, "/");
 
         public override async Task<RemoteAuthenticationResult<WebAPIAuthenticationState>> SignInAsync(RemoteAuthenticationContext<WebAPIAuthenticationState> context){
-            var claimsList = new List<Claim> { new(ClaimTypes.Name,context.State.UserName!), new("access_token", context.State.Token!) };
+            var claimsList = new List<Claim> { new(ClaimTypes.Name, context.State.UserName!) };
             await _storage.SaveAsync(JsonSerializer.Serialize(claimsList));
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(
                 new ClaimsPrincipal(new ClaimsIdentity(claimsList, nameof(WebAPIAuthenticationStateService))))));
